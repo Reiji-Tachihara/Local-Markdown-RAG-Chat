@@ -1,0 +1,47 @@
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+data/
+.pytest_cache/
+README.md
+AGENT.md
+AGENT.md
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+
+# Test, coverage, and tooling caches
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# Local runtime output
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Private local knowledge. Only public samples are tracked.
+knowledge/**
+!knowledge/
+!knowledge/sample/
+!knowledge/sample/*.md
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.env
+web/.env.*
+!web/.env.example
