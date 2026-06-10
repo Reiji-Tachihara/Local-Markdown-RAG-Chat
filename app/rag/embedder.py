@@ -16,8 +16,9 @@ class Embedder(Protocol):
 
 
 class HashEmbedder:
-    """Small deterministic embedding for offline indexing and smoke tests."""
+    """Ollama なしで動作確認するための決定的な簡易 embedder。"""
 
+    # name は API の rebuild 結果などで、どの backend を使ったか表示するための値。
     name = "hash"
 
     def __init__(self, dimensions: int = 384) -> None:
@@ -40,6 +41,8 @@ class HashEmbedder:
 
 
 class OllamaEmbedder:
+    """Ollama の embedding API を使う本番用 embedder。"""
+
     name = "ollama"
 
     def __init__(self, settings: Settings) -> None:
@@ -51,6 +54,8 @@ class OllamaEmbedder:
 
 
 def create_embedder(settings: Settings) -> Embedder:
+    """settings.embedding_backend の値に応じて embedder 実装を選ぶ。"""
+
     backend = settings.embedding_backend.lower()
     # 既定は Ollama。hash は Ollama なしで構文確認したい時の退避経路。
     if backend == "ollama":
@@ -63,7 +68,10 @@ def create_embedder(settings: Settings) -> Embedder:
 def _features(text: str) -> list[str]:
     # hash embedding 用の特徴量。単語と日本語にも効きやすい文字 3-gram を混ぜる。
     normalized = re.sub(r"\s+", " ", text.lower()).strip()
+    # words は英数字や日本語の単語っぽいまとまり。
     words = re.findall(r"(?u)\w+", normalized)
+    # compact は空白を消した文字列。日本語の文字 n-gram を作るために使う。
     compact = re.sub(r"\s+", "", normalized)
+    # ngrams は3文字ずつの特徴量。単語境界が曖昧な日本語でも少し検索しやすくする。
     ngrams = [compact[index : index + 3] for index in range(max(len(compact) - 2, 0))]
     return words + ngrams

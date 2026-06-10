@@ -10,13 +10,19 @@ class OllamaConnectionError(RuntimeError):
 
 
 class OllamaClient:
+    """Ollama の HTTP API を呼ぶための最小クライアント。"""
+
     def __init__(self, settings: Settings) -> None:
         # .env の末尾スラッシュ有無に左右されないよう正規化する。
+        # base_url は例: http://localhost:11434/api
         self.base_url = settings.ollama_base_url.rstrip("/")
+        # chat_model は回答生成用、embedding_model は検索用ベクトル生成用。
         self.chat_model = settings.ollama_chat_model
         self.embedding_model = settings.ollama_embedding_model
 
     def generate(self, prompt: str, system: str) -> str:
+        """Ollama の /generate を呼び、チャット回答を1つ返す。"""
+
         # /api/generate は単発プロンプト向け。stream=False で最後までまとめて受け取る。
         payload = {
             "model": self.chat_model,
@@ -28,6 +34,8 @@ class OllamaClient:
         return str(data.get("response", "")).strip()
 
     def embed(self, texts: list[str]) -> list[list[float]]:
+        """複数テキストを embedding ベクトルへ変換する。"""
+
         if not texts:
             return []
 
@@ -55,6 +63,8 @@ class OllamaClient:
         return vectors
 
     def _post(self, path: str, payload: dict) -> dict:
+        """Ollama API に JSON POST し、JSON レスポンスを dict として返す。"""
+
         # 依存を増やさないため標準ライブラリ urllib で POST する。
         request = Request(
             f"{self.base_url}{path}",

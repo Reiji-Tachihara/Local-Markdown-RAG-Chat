@@ -2,6 +2,8 @@ import re
 
 
 def chunk_markdown(text: str, chunk_size: int = 900, overlap: int = 120) -> list[str]:
+    """Markdown テキストを検索しやすい長さの chunk 配列に分割する。"""
+
     # Windows 改行 CRLF を LF に揃えると、段落分割の条件が安定する。
     cleaned = text.replace("\r\n", "\n").strip()
     if not cleaned:
@@ -9,6 +11,7 @@ def chunk_markdown(text: str, chunk_size: int = 900, overlap: int = 120) -> list
 
     # Markdown の段落境界を優先し、長い段落だけ文字数で分割する。
     blocks = [block.strip() for block in re.split(r"\n{2,}", cleaned) if block.strip()]
+    # chunks は確定済みの chunk 一覧、current は作成中の chunk。
     chunks: list[str] = []
     current = ""
 

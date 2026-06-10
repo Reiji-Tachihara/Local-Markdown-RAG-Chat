@@ -1,8 +1,9 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./App.module.css";
 
 type PersonaKey = "user_clone" | "rational_advisor";
 
+// FastAPI の /api/chat が返す RAG 参照元1件分の型。
 type RagContext = {
   source_path: string;
   chunk_index: number;
@@ -10,6 +11,7 @@ type RagContext = {
   score: number;
 };
 
+// FastAPI の /api/chat のレスポンス型。
 type ChatResponse = {
   answer: string;
   persona: PersonaKey;
@@ -17,46 +19,76 @@ type ChatResponse = {
   contexts: RagContext[];
 };
 
+// 画面上に表示する会話メッセージの型。
 type ChatMessage = {
-  id: string;
+  id: string | number;
   role: "user" | "assistant";
   content: string;
   persona?: PersonaKey;
   contexts?: RagContext[];
 };
 
+type HistoryResponse = {
+  messages: Array<{
+    id: number;
+    role: "user" | "assistant";
+    content: string;
+    persona: PersonaKey;
+    contexts: RagContext[];
+    created_at: string;
+  }>;
+};
+
+// Vite では VITE_ で始まる環境変数だけがブラウザ側に公開される。
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000").replace(
   /\/$/,
   ""
 );
 
+// UI 表示用のペルソナ名。API に送る値とは分けて管理する。
 const personaLabels: Record<PersonaKey, string> = {
-  user_clone: "ユーザーの分身",
-  rational_advisor: "合理的な相談相手"
+  user_clone: "ユーザー",
+  rational_advisor: "相談相手"
 };
 
 function App() {
+  // persona は次に送信するチャットで使うペルソナ。
   const [persona, setPersona] = useState<PersonaKey>("rational_advisor");
+  // input は textarea に入力中の Markdown テキスト。
   const [input, setInput] = useState("");
+  // messages は画面に表示する会話履歴。ブラウザをリロードすると消える一時的な履歴。
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // isLoading は API 呼び出し中の二重送信防止とローディング表示に使う。
   const [isLoading, setIsLoading] = useState(false);
+  // error は API エラーやネットワークエラーを画面に出すための文字列。
   const [error, setError] = useState<string | null>(null);
+  // lastContexts は右側の RAG references に表示する直近回答の参照元。
   const [lastContexts, setLastContexts] = useState<RagContext[]>([]);
 
+  // 空入力や API 呼び出し中は送信ボタンを無効化する。
   const canSend = input.trim().length > 0 && !isLoading;
 
+  useEffect(() => {
+    // 画面を開いた時に、SQLite に保存済みのチャット履歴を読み込む。
+    loadHistory();
+  }, []);
+
+  // ユーザーが送った回数だけを会話件数として表示する。
   const messageCount = useMemo(
     () => messages.filter((message) => message.role === "user").length,
     [messages]
   );
 
   async function submitChat(event: FormEvent<HTMLFormElement>) {
+    // form の標準送信でページ全体が再読み込みされないようにする。
     event.preventDefault();
     if (!canSend) {
       return;
     }
 
+    // userContent は API に送る確定済み入力。前後の空白はここで落とす。
     const userContent = input.trim();
+    // userMessage は、API の応答を待つ前に画面へ即時追加するユーザー発言。
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -70,6 +102,7 @@ function App() {
     setIsLoading(true);
 
     try {
+      // FastAPI の RAG チャット API を呼び出す。
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,6 +119,7 @@ function App() {
       }
 
       const data = (await response.json()) as ChatResponse;
+      // assistantMessage は Ollama が生成した回答と、その回答に使った参照元を持つ。
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -96,6 +130,7 @@ function App() {
       setMessages((current) => [...current, assistantMessage]);
       setLastContexts(data.contexts);
     } catch (caughtError) {
+      // fetch 失敗、FastAPI の 503、Ollama 未起動などをここで画面表示用に変換する。
       setError(caughtError instanceof Error ? caughtError.message : "不明なエラーが発生しました。");
     } finally {
       setIsLoading(false);
@@ -103,6 +138,7 @@ function App() {
   }
 
   async function rebuildIndex() {
+    // Markdown を追加・編集した後に、検索用 DB を作り直すための処理。
     setError(null);
     setIsLoading(true);
     try {
@@ -120,6 +156,36 @@ function App() {
     }
   }
 
+  async function loadHistory() {
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat/history?limit=80`);
+      if (!response.ok) {
+        const detail = await readError(response);
+        throw new Error(detail);
+      }
+      const data = (await response.json()) as HistoryResponse;
+      const loadedMessages = data.messages
+        .slice()
+        .reverse()
+        .map((message) => ({
+          id: message.id,
+          role: message.role,
+          content: message.content,
+          persona: message.persona,
+          contexts: message.contexts
+        }));
+      setMessages(loadedMessages);
+      const lastAssistant = loadedMessages
+        .slice()
+        .reverse()
+        .find((message) => message.role === "assistant" && message.contexts?.length);
+      setLastContexts(lastAssistant?.contexts ?? []);
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "履歴の読み込みに失敗しました。");
+    }
+  }
+
   return (
     <main className={styles.shell}>
       <section className={styles.header}>
@@ -132,6 +198,9 @@ function App() {
         </div>
         <div className={styles.headerActions}>
           <span className={styles.apiUrl}>{API_BASE_URL}</span>
+          <button className={styles.secondaryButton} onClick={loadHistory} disabled={isLoading}>
+            Reload history
+          </button>
           <button className={styles.secondaryButton} onClick={rebuildIndex} disabled={isLoading}>
             Index rebuild
           </button>
@@ -218,6 +287,7 @@ function App() {
 }
 
 function ContextList({ contexts, compact = false }: { contexts: RagContext[]; compact?: boolean }) {
+  // compact=true はチャット本文下の小さい参照元表示、false は右ペイン用。
   return (
     <div className={compact ? styles.compactContexts : styles.contextList}>
       {contexts.map((context) => (
@@ -235,6 +305,7 @@ function ContextList({ contexts, compact = false }: { contexts: RagContext[]; co
 }
 
 async function readError(response: Response) {
+  // FastAPI は { detail: "..."} でエラーを返すため、まず JSON として読む。
   try {
     const data = await response.json();
     if (typeof data.detail === "string") {

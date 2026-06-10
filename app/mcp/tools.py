@@ -17,6 +17,7 @@ def search_knowledge(query: str, top_k: int = 4) -> list[dict]:
 
 def get_persona_context(persona: str) -> dict[str, str]:
     """Return instructions for one supported chat persona."""
+    # MCP クライアントがプロンプト作成に使えるよう、ペルソナ指示だけを返す。
     return load_persona_context(persona)
 
 
@@ -28,6 +29,7 @@ def save_note(title: str, content: str) -> dict:
     # ノートは Markdown ファイルとして残しつつ、DB の notes テーブルにも履歴を保存する。
     note_path = _new_note_path(settings.knowledge_dir / "notes", title)
     note_path.write_text(f"# {title}\n\n{content.strip()}\n", encoding="utf-8")
+    # record は DB に保存した note のメタデータ。indexed_chunks を後から足して返す。
     record = save_note_record(settings, title.strip(), content.strip(), note_path)
     record["indexed_chunks"] = get_retriever().index_path(note_path)
     return record
@@ -35,12 +37,15 @@ def save_note(title: str, content: str) -> dict:
 
 def list_notes(limit: int = 50) -> list[dict]:
     """List notes saved through the note tool."""
+    # MCP クライアントから大量取得されないよう、DB 側でも limit を丸めている。
     settings = get_settings()
     initialize_database(settings)
     return list_note_records(settings, limit)
 
 
 def _new_note_path(notes_dir: Path, title: str) -> Path:
+    """ノートタイトルと現在時刻から衝突しにくい Markdown ファイル名を作る。"""
+
     notes_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     # ファイル名に使いにくい文字は - に寄せる。空なら note という名前にする。

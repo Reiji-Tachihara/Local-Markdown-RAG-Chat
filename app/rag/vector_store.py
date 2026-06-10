@@ -19,7 +19,10 @@ class SearchResult:
 
 
 class SQLiteVectorStore:
+    """SQLite に chunk と embedding を保存し、類似検索する簡易ベクトルストア。"""
+
     def __init__(self, settings: Settings) -> None:
+        # settings.database_path から SQLite の保存先を得る。
         self.settings = settings
 
     def replace_document(
@@ -28,6 +31,8 @@ class SQLiteVectorStore:
         chunks: list[str],
         embeddings: list[list[float]],
     ) -> int:
+        """1つの Markdown ファイル由来の chunk を DB 内で丸ごと入れ替える。"""
+
         timestamp = datetime.now(timezone.utc).isoformat()
         with connect(self.settings) as connection:
             # ファイル単位で入れ替える。更新前の古い chunk を残さないため。
@@ -55,6 +60,8 @@ class SQLiteVectorStore:
         return len(chunks)
 
     def delete_missing_sources(self, source_paths: set[str]) -> None:
+        """現在存在しない Markdown ファイル由来の古い chunk を削除する。"""
+
         with connect(self.settings) as connection:
             if not source_paths:
                 # knowledge/ に Markdown が1つもない時は索引を空にする。
@@ -68,6 +75,8 @@ class SQLiteVectorStore:
             )
 
     def search(self, query_embedding: list[float], limit: int) -> list[SearchResult]:
+        """query embedding と保存済み embedding を比較し、近い順に返す。"""
+
         with connect(self.settings) as connection:
             # 最小構成なので全件を Python 側で比較する。大規模化したら専用ベクトルDBへ移す。
             rows = connection.execute(
@@ -89,6 +98,8 @@ class SQLiteVectorStore:
 
 
 def _cosine_similarity(left: list[float], right: list[float]) -> float:
+    """2つのベクトルのコサイン類似度を計算する。"""
+
     if len(left) != len(right):
         # embedding モデルを途中で変えた場合など、次元数が違うデータは比較できない。
         return -1.0
