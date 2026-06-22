@@ -100,18 +100,10 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 
 ## ローカル起動スクリプト
 
-開発用に PowerShell スクリプトを用意しています。FastAPI と Web UI は別々の PowerShell で起動します。
+開発用に FastAPI 起動用の PowerShell スクリプトを用意しています。
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\start_api.ps1
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\start_web.ps1
-```
-
-ダブルクリックで起動したい場合は、`.ps1` ではなく `.cmd` を使います。
-
-```text
-scripts/start_api.cmd
-scripts/start_web.cmd
 ```
 
 `start_api.ps1` は FastAPI を `127.0.0.1` に限定して起動します。
@@ -198,7 +190,7 @@ app/                  FastAPI, RAG, DB, Ollama, MCP
 web/                  React + Vite + TypeScript UI
 personas/             ペルソナ Markdown
 knowledge/sample/     公開用サンプル Markdown
-scripts/              ローカル起動スクリプト
+scripts/              公開前チェック、FastAPI 起動補助
 requirements.txt      Python 依存関係
 .env.example          バックエンド設定例
 ```

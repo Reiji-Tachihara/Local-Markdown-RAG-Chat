@@ -24,12 +24,14 @@ class OllamaClient:
         """Ollama の /generate を呼び、チャット回答を1つ返す。"""
 
         # /api/generate は単発プロンプト向け。stream=False で最後までまとめて受け取る。
+        # payload は Ollama に送る JSON の中身。
         payload = {
             "model": self.chat_model,
             "prompt": prompt,
             "system": system,
             "stream": False,
         }
+        # _post() は実際に HTTP POST を行う自作メソッド。
         data = self._post("/generate", payload)
         return str(data.get("response", "")).strip()
 
@@ -41,7 +43,9 @@ class OllamaClient:
 
         # 新しめの Ollama API は /api/embed で複数 input を扱える。
         try:
+            # /embed を呼ぶと、複数テキストの embedding をまとめて取得できる。
             data = self._post("/embed", {"model": self.embedding_model, "input": texts})
+            # embeddings は Ollama から返ってくるベクトル配列。
             embeddings = data.get("embeddings")
             if isinstance(embeddings, list):
                 return embeddings
@@ -50,8 +54,10 @@ class OllamaClient:
                 raise
 
         # 古い /api/embeddings だけの環境にも寄せるため単件でフォールバックする。
+        # vectors は最終的に返す embedding の一覧。
         vectors: list[list[float]] = []
         for text in texts:
+            # 古い API では1件ずつ /embeddings を呼ぶ必要がある。
             data = self._post(
                 "/embeddings",
                 {"model": self.embedding_model, "prompt": text},
@@ -73,6 +79,7 @@ class OllamaClient:
             method="POST",
         )
         try:
+            # urlopen() を呼ぶと HTTP リクエストが実行される。
             with urlopen(request, timeout=60) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:

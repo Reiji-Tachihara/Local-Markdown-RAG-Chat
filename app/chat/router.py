@@ -9,6 +9,7 @@ from app.ollama_client import OllamaConnectionError
 from app.rag.retriever import get_retriever
 
 
+# router は API の住所一覧をまとめるオブジェクト。main.py で /api 配下に登録される。
 router = APIRouter()
 
 
@@ -36,6 +37,7 @@ def rebuild_index() -> dict:
     """knowledge/ 配下を読み直して検索インデックスを再作成する。"""
 
     try:
+        # get_retriever() で検索担当を取得し、rebuild_index() で索引を作り直す。
         return get_retriever().rebuild_index()
     except OllamaConnectionError as error:
         # Ollama 未起動やモデル未取得は 500 ではなく利用者が直せる 503 として返す。
@@ -48,7 +50,9 @@ def search_knowledge(request: SearchRequest) -> dict:
 
     try:
         # API 層では検索ロジックを持たず、retriever に委譲する。
+        # results は検索で見つかった Markdown chunk の一覧。
         results = get_retriever().search(request.query, request.top_k)
+        # result.__dict__ は dataclass 風のオブジェクトを JSON にしやすい辞書へ変換する。
         return {"results": [result.__dict__ for result in results]}
     except OllamaConnectionError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
@@ -60,6 +64,8 @@ def chat(request: ChatRequest) -> dict:
 
     try:
         # チャットの組み立ては RagChatService に集約し、router は HTTP 変換に集中する。
+        # RagChatService() はチャット処理用クラスのインスタンスを作る呼び出し。
+        # reply() が検索、プロンプト作成、Ollama 呼び出し、履歴保存まで行う。
         return RagChatService().reply(request.message, request.persona, request.top_k)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -71,6 +77,7 @@ def chat(request: ChatRequest) -> dict:
 def list_personas() -> dict:
     """UI がペルソナ一覧を表示できるように、登録済みペルソナを返す。"""
 
+    # list_persona_contexts() を呼ぶと、personas/*.md から読み込んだ一覧が返る。
     return {"personas": list_persona_contexts()}
 
 
@@ -78,4 +85,5 @@ def list_personas() -> dict:
 def chat_history(limit: int = 50) -> dict:
     """SQLite に保存されたチャット履歴を新しい順に返す。"""
 
+    # get_settings() で DB パスなどの設定を取り、list_chat_messages() に渡す。
     return {"messages": list_chat_messages(get_settings(), limit)}

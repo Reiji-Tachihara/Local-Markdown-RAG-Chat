@@ -33,6 +33,7 @@ class SQLiteVectorStore:
     ) -> int:
         """1つの Markdown ファイル由来の chunk を DB 内で丸ごと入れ替える。"""
 
+        # timestamp はこのファイルの chunk を更新した時刻。
         timestamp = datetime.now(timezone.utc).isoformat()
         with connect(self.settings) as connection:
             # ファイル単位で入れ替える。更新前の古い chunk を残さないため。
@@ -68,6 +69,7 @@ class SQLiteVectorStore:
                 connection.execute("DELETE FROM chunks")
                 return
             # 今回読み込めたファイル以外の chunk は、削除済みファイル由来として消す。
+            # placeholders は SQL の IN (...) に入れる ? の並び。
             placeholders = ",".join("?" for _ in source_paths)
             connection.execute(
                 f"DELETE FROM chunks WHERE source_path NOT IN ({placeholders})",
@@ -79,11 +81,13 @@ class SQLiteVectorStore:
 
         with connect(self.settings) as connection:
             # 最小構成なので全件を Python 側で比較する。大規模化したら専用ベクトルDBへ移す。
+            # rows は DB に保存されている全 chunk。
             rows = connection.execute(
                 "SELECT source_path, chunk_index, content, embedding FROM chunks"
             ).fetchall()
 
         # 各 chunk の embedding と query embedding のコサイン類似度を計算する。
+        # results は各 chunk に score を付けた検索結果一覧。
         results = [
             SearchResult(
                 source_path=row["source_path"],
@@ -93,6 +97,7 @@ class SQLiteVectorStore:
             )
             for row in rows
         ]
+        # score が高い順に並べ替える。
         results.sort(key=lambda result: result.score, reverse=True)
         return results[: max(1, limit)]
 
@@ -103,7 +108,9 @@ def _cosine_similarity(left: list[float], right: list[float]) -> float:
     if len(left) != len(right):
         # embedding モデルを途中で変えた場合など、次元数が違うデータは比較できない。
         return -1.0
+    # dot は内積。2つのベクトルが同じ方向を向くほど大きくなる。
     dot = sum(left_value * right_value for left_value, right_value in zip(left, right))
+    # left_norm/right_norm はそれぞれのベクトルの長さ。
     left_norm = math.sqrt(sum(value * value for value in left))
     right_norm = math.sqrt(sum(value * value for value in right))
     if not left_norm or not right_norm:

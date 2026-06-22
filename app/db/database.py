@@ -13,6 +13,7 @@ def connect(settings: Settings) -> Iterator[sqlite3.Connection]:
     """SQLite 接続を開き、処理後に commit と close を確実に行う。"""
 
     # sqlite3.Row を使うと row["column_name"] の形で読みやすく取り出せる。
+    # connection は SQLite との接続。以後の SELECT/INSERT はこの変数経由で行う。
     connection = sqlite3.connect(settings.database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -66,6 +67,7 @@ def save_note_record(settings: Settings, title: str, content: str, source_path: 
     # DB にはメタデータを保存し、Markdown 本文自体は knowledge/notes/ にも残す。
     created_at = datetime.now(timezone.utc).isoformat()
     with connect(settings) as connection:
+        # cursor は INSERT の実行結果。lastrowid で追加された行の id を取得できる。
         cursor = connection.execute(
             """
             INSERT INTO notes(title, content, source_path, created_at)
@@ -73,6 +75,7 @@ def save_note_record(settings: Settings, title: str, content: str, source_path: 
             """,
             (title, content, source_path.as_posix(), created_at),
         )
+        # note_id は今回追加された notes レコードの主キー。
         note_id = cursor.lastrowid
     return {
         "id": note_id,
@@ -87,8 +90,10 @@ def list_note_records(settings: Settings, limit: int = 50) -> list[dict]:
     """保存済みノートを新しい順に取得する。"""
 
     # limit を丸めることで、誤って大量取得するリクエストを避ける。
+    # safe_limit は、利用者から来た limit を 1〜200 の範囲に収めた値。
     safe_limit = max(1, min(limit, 200))
     with connect(settings) as connection:
+        # rows は DB から取得した複数行の結果。
         rows = connection.execute(
             """
             SELECT id, title, content, source_path, created_at
@@ -111,8 +116,10 @@ def save_chat_message(
     """チャットメッセージを SQLite に保存する。"""
 
     initialize_database(settings)
+    # created_at は保存時刻。UTC の ISO 形式で保存する。
     created_at = datetime.now(timezone.utc).isoformat()
     with connect(settings) as connection:
+        # INSERT でチャットメッセージ1件を保存する。
         cursor = connection.execute(
             """
             INSERT INTO chat_messages(role, content, persona, contexts, created_at)
@@ -120,6 +127,7 @@ def save_chat_message(
             """,
             (role, content, persona, json.dumps(contexts, ensure_ascii=False), created_at),
         )
+        # message_id は今回保存された chat_messages レコードの id。
         message_id = cursor.lastrowid
     return {
         "id": message_id,
@@ -135,8 +143,10 @@ def list_chat_messages(settings: Settings, limit: int = 50) -> list[dict]:
     """保存済みチャット履歴を新しい順に取得する。"""
 
     initialize_database(settings)
+    # safe_limit は履歴取得件数の上限を守るための変数。
     safe_limit = max(1, min(limit, 200))
     with connect(settings) as connection:
+        # rows は新しい順に取得したチャット履歴。
         rows = connection.execute(
             """
             SELECT id, role, content, persona, contexts, created_at
@@ -147,8 +157,10 @@ def list_chat_messages(settings: Settings, limit: int = 50) -> list[dict]:
             (safe_limit,),
         ).fetchall()
 
+    # messages は API で返すために整形した履歴一覧。
     messages: list[dict] = []
     for row in rows:
+        # record は sqlite3.Row を普通の dict に変換したもの。
         record = dict(row)
         record["contexts"] = json.loads(record["contexts"])
         messages.append(record)

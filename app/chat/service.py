@@ -24,14 +24,19 @@ class RagChatService:
         """ユーザー入力に対して、RAG 検索結果つきのチャット応答を返す。"""
 
         # 1. ペルソナを決める 2. 関連 chunk を探す 3. それを文脈として LLM に渡す。
+        # persona は、今回の応答で使う振る舞いの指示。
         persona = get_persona(persona_key)
         # results は RAG の参照元として UI にも返す。
         results = self.retriever.search(message, limit)
+        # context は検索結果を LLM に渡しやすい1つの文字列にしたもの。
         context = _format_context(results)
+        # answer は Ollama から返ってきた最終回答。
         answer = self._generate_with_ollama(message, persona.instructions, context)
+        # context_dicts は JSON レスポンスや SQLite 保存に使いやすい辞書の配列。
         context_dicts = [asdict(result) for result in results]
 
         # ユーザー発言と assistant 応答の両方を SQLite に保存する。
+        # save_chat_message() を呼び出して、ユーザー入力を履歴として保存する。
         user_record = save_chat_message(
             self.settings,
             role="user",
@@ -39,6 +44,7 @@ class RagChatService:
             persona=persona.key,
             contexts=[],
         )
+        # assistant の回答も同じテーブルに保存する。
         assistant_record = save_chat_message(
             self.settings,
             role="assistant",
@@ -61,19 +67,23 @@ class RagChatService:
     def _generate_with_ollama(self, message: str, persona_context: str, context: str) -> str:
         """Ollama に渡す system/prompt を組み立て、LLM の回答文字列を返す。"""
 
+        # client は Ollama API を呼び出すための窓口。
         client = OllamaClient(self.settings)
         # RAG の根拠とユーザー入力を分離して、モデルが文脈を取り違えにくくする。
+        # prompt はユーザー入力と検索結果を合わせた、LLM への具体的な依頼文。
         prompt = (
             f"Markdown context:\n{context or '(no retrieved context)'}\n\n"
             f"User message:\n{message}\n\n"
             "Answer in Japanese unless the user asks otherwise. "
             "Use the Markdown context only when it is relevant."
         )
+        # system は LLM の役割や禁止事項を指定する上位の指示。
         system = (
             "You are a local RAG chat assistant. Do not use external APIs. "
             "Do not invent details unsupported by the provided context.\n\n"
             f"Persona:\n{persona_context}"
         )
+        # generate() を呼び出して、Ollama に実際の回答生成を依頼する。
         return client.generate(prompt=prompt, system=system)
 
 

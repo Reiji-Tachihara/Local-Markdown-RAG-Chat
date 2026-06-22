@@ -12,9 +12,11 @@ class MarkdownDocument:
 
 def load_markdown_documents(knowledge_dir: Path) -> list[MarkdownDocument]:
     # knowledge_dir 配下を再帰的に探すので、サブフォルダを自由に増やせる。
+    # documents は読み込んだ MarkdownDocument を順番に入れる配列。
     documents: list[MarkdownDocument] = []
     for path in sorted(knowledge_dir.rglob("*.md")):
         # Markdown は日本語を扱う前提なので UTF-8 固定で読む。
+        # MarkdownDocument(...) は path と text を1つのデータとしてまとめる呼び出し。
         documents.append(
             MarkdownDocument(
                 path=path,

@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     def ensure_directories(self) -> None:
+        # mkdir はフォルダを作る関数。exist_ok=True なので既にあってもエラーにしない。
         # 初回起動でも knowledge/data 配下が存在する前提にしない。
         self.knowledge_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -50,6 +51,7 @@ class Settings(BaseSettings):
 
     def cors_origin_list(self) -> list[str]:
         # .env ではカンマ区切り文字列として扱い、FastAPI には list[str] で渡す。
+        # origin はカンマで分割された URL 1つ分を表す一時変数。
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     def validate_local_only(self) -> None:
@@ -58,7 +60,9 @@ class Settings(BaseSettings):
         if not self.enforce_local_ollama:
             return
 
+        # parsed は URL を hostname などの部品に分解した結果。
         parsed = urlparse(self.ollama_base_url)
+        # allowed_hosts はローカル接続として許可するホスト名の集合。
         allowed_hosts = {"localhost", "127.0.0.1", "::1"}
         if parsed.hostname not in allowed_hosts:
             raise ValueError(
@@ -71,7 +75,10 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """設定を1回だけ作り、以後は同じ Settings を使い回す。"""
 
+    # Settings() を呼び出すと .env が読み込まれ、設定オブジェクトが作られる。
     settings = Settings()
+    # validate_local_only() は、Ollama URL が外部向きになっていないか確認する。
     settings.validate_local_only()
+    # ensure_directories() は、起動に必要なフォルダを作る。
     settings.ensure_directories()
     return settings
