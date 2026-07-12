@@ -1,5 +1,5 @@
 import styles from "../App.module.css";
-import { personaLabels } from "../constants";
+import { CHAT_INPUT_MAX_LENGTH, personaLabels } from "../constants";
 import type { ChatMessage, PersonaKey } from "../types";
 import { ContextList } from "./ContextList";
 
@@ -7,6 +7,7 @@ type ChatPanelProps = {
   canSend: boolean;
   input: string;
   isLoading: boolean;
+  isTooLong: boolean;
   messageCount: number;
   messages: ChatMessage[];
   persona: PersonaKey;
@@ -19,6 +20,7 @@ export function ChatPanel({
   canSend,
   input,
   isLoading,
+  isTooLong,
   messageCount,
   messages,
   persona,
@@ -46,7 +48,7 @@ export function ChatPanel({
       <div className={styles.messages}>
         {messages.length === 0 ? (
           <div className={styles.emptyState}>
-            Markdownの知識ベースについて質問できます。回答には参照されたRAGコンテキストが表示されます。
+            Markdown の知識ベースについて質問できます。回答には参照された RAG コンテキストが表示されます。
           </div>
         ) : (
           messages.map((message) => (
@@ -65,7 +67,7 @@ export function ChatPanel({
         {isLoading && (
           <div className={styles.loading}>
             <span className={styles.spinner} />
-            生成中です。Ollamaの応答を待っています。
+            生成中です。長い質問では Ollama の応答に時間がかかることがあります。
           </div>
         )}
       </div>
@@ -74,12 +76,16 @@ export function ChatPanel({
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder={"Markdownで質問を入力できます。\n例: この知識ベースの要点をまとめて"}
+          placeholder={"Markdown で質問を入力できます。\n例: この知識ベースの要点をまとめて"}
           rows={8}
           disabled={isLoading}
+          maxLength={CHAT_INPUT_MAX_LENGTH + 1000}
         />
         <div className={styles.composerFooter}>
-          <span>Markdown input / Shift+Enterで改行</span>
+          <span>
+            {input.trim().length}/{CHAT_INPUT_MAX_LENGTH} 文字
+            {isTooLong ? " - 質問を短くしてください" : " / Shift+Enter で改行"}
+          </span>
           <button className={styles.primaryButton} type="submit" disabled={!canSend}>
             Send
           </button>

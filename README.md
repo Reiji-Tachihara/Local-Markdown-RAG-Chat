@@ -29,7 +29,7 @@ Frontend
 
 Local AI
   qwen3:8b
-  
+  nomic-embed-text
 ```
 
 ## アーキテクチャ
@@ -77,6 +77,7 @@ frontend/.env.example        Frontend environment example
 PowerShell でプロジェクトルートへ移動し、初回だけ以下を実行します。
 
 ```powershell
+cd E:\pwork
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\setup_app.ps1
 ```
 
@@ -84,13 +85,14 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\setup_app.ps1
 
 ### 普段の起動
 
-Ollama アプリが起動している状態で、以下を実行します。
+以下を実行します。
 
 ```powershell
+cd E:\pwork
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\start_app.ps1
 ```
 
-このスクリプトは FastAPI と React/Vite をまとめて起動し、ブラウザでフロントエンドを開きます。
+このスクリプトは Ollama、FastAPI、React/Vite をまとめて起動し、ブラウザでフロントエンドを開きます。
 停止するときは、起動中の PowerShell で `Ctrl + C` を押します。
 
 Frontend:
@@ -111,6 +113,62 @@ Health check:
 http://127.0.0.1:8000/health
 ```
 
+## 画面上のボタン
+
+### Index rebuild
+
+`Index rebuild` は、`knowledge/` 配下の Markdown を読み直して RAG 検索用のインデックスを作り直すボタンです。
+
+主に以下のタイミングで使います。
+
+- `knowledge/` に Markdown を追加した
+- 既存の Markdown を編集した
+- Markdown を削除した
+- MCP の `save_note` 以外の方法で知識ファイルを変更した
+
+内部的には以下の処理を行います。
+
+```text
+1. knowledge/ 配下の .md ファイルを読み込む
+2. Markdown を chunk に分割する
+3. 各 chunk の embedding を Ollama で作る
+4. SQLite に chunk と embedding を保存し直す
+5. 削除済み Markdown 由来の古い chunk を DB から消す
+```
+
+呼び出している API:
+
+```text
+POST /api/index/rebuild
+```
+
+### Reload history
+
+`Reload history` は、SQLite に保存されている過去のチャット履歴を読み直すボタンです。
+
+主に以下のタイミングで使います。
+
+- 画面を開いたまま別操作で履歴が増えた
+- 表示中の会話履歴を保存済みデータで再読み込みしたい
+- 最後の assistant 回答に紐づく RAG references を再表示したい
+
+内部的には以下の処理を行います。
+
+```text
+1. FastAPI の /api/chat/history を呼ぶ
+2. SQLite の chat_messages テーブルから履歴を取得する
+3. 画面上の会話一覧を取得した履歴で更新する
+4. 最後の assistant 回答に紐づく RAG references を右側に表示する
+```
+
+呼び出している API:
+
+```text
+GET /api/chat/history?limit=80
+```
+
+画面を開いた時にも履歴は自動で読み込まれるため、通常は必要な時だけ押す手動更新ボタンです。
+
 ## 環境変数
 
 詳細な設定項目は [.env.example](.env.example) と [frontend/.env.example](frontend/.env.example) に記載しています。
@@ -126,6 +184,14 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 
 `ENFORCE_LOCAL_OLLAMA=true` の場合、Ollama URL は `localhost` / `127.0.0.1` / `::1` のみ許可します。
 API キーやパスワードのような秘密情報は使わない前提です。
+
+長い質問で応答に時間がかかる場合は、`.env.example` を参考に以下の値を調整できます。
+
+```env
+OLLAMA_REQUEST_TIMEOUT=180
+CHAT_MESSAGE_MAX_CHARS=12000
+RAG_CONTEXT_MAX_CHARS=12000
+```
 
 ## API
 

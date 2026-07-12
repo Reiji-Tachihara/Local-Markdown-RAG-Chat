@@ -49,6 +49,16 @@ async function readError(response: Response): Promise<string> {
     if (typeof data.detail === "string") {
       return data.detail;
     }
+    if (Array.isArray(data.detail)) {
+      return (data.detail as unknown[])
+        .map((item) => {
+          if (typeof item === "object" && item !== null && "msg" in item && typeof item.msg === "string") {
+            return item.msg;
+          }
+          return JSON.stringify(item);
+        })
+        .join("\n");
+    }
     return JSON.stringify(data);
   } catch {
     return `${response.status} ${response.statusText}`;

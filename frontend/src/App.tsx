@@ -14,7 +14,7 @@ function App() {
           <p className={styles.kicker}>Local Markdown RAG</p>
           <h1>Markdown knowledge chat</h1>
           <p className={styles.summary}>
-            ローカルのMarkdownを検索し、Ollamaの回答に参照元を添えて表示するRAGチャットです。
+            ローカルの Markdown を検索し、Ollama の回答に参照元を添えて表示する RAG チャットです。
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -39,6 +39,7 @@ function App() {
           canSend={chat.canSend}
           input={chat.input}
           isLoading={chat.isLoading}
+          isTooLong={chat.isTooLong}
           messageCount={chat.messageCount}
           messages={chat.messages}
           persona={chat.persona}

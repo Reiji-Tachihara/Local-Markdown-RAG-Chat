@@ -1,4 +1,5 @@
 import json
+import socket
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -6,7 +7,7 @@ from app.config import Settings
 
 
 class OllamaConnectionError(RuntimeError):
-    """Ollama 停止時やモデル未取得時に、API 利用者へ分かりやすく返す例外。"""
+    """Ollama 停止時やモデル未取得時に、利用者へ分かりやすく返す例外。"""
 
 
 class OllamaClient:
@@ -16,6 +17,7 @@ class OllamaClient:
         self.base_url = settings.ollama_base_url.rstrip("/")
         self.chat_model = settings.ollama_chat_model
         self.embedding_model = settings.ollama_embedding_model
+        self.timeout = settings.ollama_request_timeout
 
     def generate(self, prompt: str, system: str) -> str:
         """Ollama の /generate を呼び出し、チャット回答を1つ返す。"""
@@ -41,7 +43,7 @@ class OllamaClient:
             if isinstance(embeddings, list):
                 return embeddings
         except OllamaConnectionError as error:
-            if "404" not in str(error):
+            if "HTTP 404" not in str(error):
                 raise
 
         vectors: list[list[float]] = []
@@ -52,7 +54,7 @@ class OllamaClient:
             )
             embedding = data.get("embedding")
             if not isinstance(embedding, list):
-                raise OllamaConnectionError("Ollama embedding response did not contain an embedding vector.")
+                raise OllamaConnectionError("Ollama の embedding レスポンスにベクトルが含まれていません。")
             vectors.append(embedding)
         return vectors
 
@@ -66,20 +68,21 @@ class OllamaClient:
             method="POST",
         )
         try:
-            with urlopen(request, timeout=60) as response:
+            with urlopen(request, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
             body = error.read().decode("utf-8", errors="replace")
             raise OllamaConnectionError(
-                f"Ollama API returned HTTP {error.code}. "
-                f"Check model names and that required models are pulled. Response: {body}"
+                f"Ollama API が HTTP {error.code} を返しました。"
+                f"モデル名と pull 済みかを確認してください。レスポンス: {body}"
             ) from error
         except URLError as error:
             raise OllamaConnectionError(
-                "Ollama API is not reachable. Start Ollama and confirm "
-                f"{self.base_url} is available. Original error: {error.reason}"
+                "Ollama API に接続できません。Ollama が起動しているか、"
+                f"{self.base_url} にアクセスできるか確認してください。詳細: {error.reason}"
             ) from error
-        except TimeoutError as error:
+        except (TimeoutError, socket.timeout) as error:
             raise OllamaConnectionError(
-                "Ollama API request timed out. Confirm Ollama is running and the model is loaded."
+                f"Ollama API の応答が {self.timeout} 秒以内に返りませんでした。"
+                "長い質問の場合は短く分けるか、OLLAMA_REQUEST_TIMEOUT を増やしてください。"
             ) from error

@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { fetchHistory, rebuildIndex, sendChat } from "../api/client";
+import { CHAT_INPUT_MAX_LENGTH } from "../constants";
 import type { ChatMessage, PersonaKey, RagContext } from "../types";
 
 export function useChat() {
@@ -10,7 +11,9 @@ export function useChat() {
   const [error, setError] = useState<string | null>(null);
   const [lastContexts, setLastContexts] = useState<RagContext[]>([]);
 
-  const canSend = input.trim().length > 0 && !isLoading;
+  const trimmedInput = input.trim();
+  const isTooLong = trimmedInput.length > CHAT_INPUT_MAX_LENGTH;
+  const canSend = trimmedInput.length > 0 && !isTooLong && !isLoading;
   const messageCount = useMemo(
     () => messages.filter((message) => message.role === "user").length,
     [messages]
@@ -48,11 +51,15 @@ export function useChat() {
 
   async function submitChat(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isTooLong) {
+      setError(`質問が長すぎます。${CHAT_INPUT_MAX_LENGTH} 文字以内に短くしてください。`);
+      return;
+    }
     if (!canSend) {
       return;
     }
 
-    const userContent = input.trim();
+    const userContent = trimmedInput;
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -100,6 +107,7 @@ export function useChat() {
     error,
     input,
     isLoading,
+    isTooLong,
     lastContexts,
     loadHistory,
     messageCount,
