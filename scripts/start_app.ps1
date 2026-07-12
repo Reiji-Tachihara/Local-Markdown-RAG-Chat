@@ -19,6 +19,7 @@ $backendEnvExample = Join-Path $projectRoot ".env.example"
 $frontendEnv = Join-Path $frontendDir ".env"
 $frontendEnvExample = Join-Path $frontendDir ".env.example"
 $nodeModules = Join-Path $frontendDir "node_modules"
+$ollamaCommand = Get-Command ollama -ErrorAction SilentlyContinue
 
 if (-not (Test-Path $backendEnv) -and (Test-Path $backendEnvExample)) {
     Copy-Item $backendEnvExample $backendEnv
@@ -37,6 +38,12 @@ if (-not (Test-Path $nodeModules)) {
     exit 1
 }
 
+if (-not $ollamaCommand) {
+    Write-Host "Ollama コマンドが見つかりません。Ollama をインストールしてから再実行してください。" -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "Ollama:  http://127.0.0.1:11434"
 Write-Host "API:      http://127.0.0.1:8000"
 Write-Host "Docs:     http://127.0.0.1:8000/docs"
 Write-Host "Frontend: http://127.0.0.1:5173"
@@ -65,10 +72,29 @@ function Wait-HttpOk {
     throw "$Url の起動確認がタイムアウトしました。"
 }
 
+function Test-HttpOk {
+    param([string]$Url)
+
+    try {
+        $response = Invoke-WebRequest -UseBasicParsing $Url -TimeoutSec 2
+        return ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500)
+    } catch {
+        return $false
+    }
+}
+
 $apiJob = $null
 $frontendJob = $null
 
 try {
+    if (-not (Test-HttpOk "http://127.0.0.1:11434/api/tags")) {
+        Write-Host "Ollama を起動しています..."
+        Start-Process -FilePath $ollamaCommand.Source -WindowStyle Hidden
+    }
+
+    Write-Host "Ollama の起動を確認しています..."
+    Wait-HttpOk "http://127.0.0.1:11434/api/tags"
+
     $apiJob = Start-Job -Name "local-rag-api" -ScriptBlock {
         param($root)
         Set-Location $root
