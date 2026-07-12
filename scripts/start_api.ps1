@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 # プロジェクトルートは scripts ディレクトリの1階層上。
 $scriptPath = $MyInvocation.MyCommand.Path

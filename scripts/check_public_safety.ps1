@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 # GitHub に push する前に、個人用 knowledge やローカル生成物が追跡されていないか確認する。
 $trackedFiles = git ls-files
