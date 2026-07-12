@@ -29,7 +29,7 @@ Frontend
 
 Local AI
   qwen3:8b
-  nomic-embed-text
+  
 ```
 
 ## アーキテクチャ
