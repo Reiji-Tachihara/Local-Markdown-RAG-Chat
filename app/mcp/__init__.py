@@ -1,1 +1,1 @@
-"""MCP server for local knowledge tools."""
+"""ローカル知識ツール用 MCP サーバ。"""

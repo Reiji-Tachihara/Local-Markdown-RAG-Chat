@@ -1,1 +1,1 @@
-"""SQLite persistence helpers."""
+"""SQLite 永続化関連ヘルパー。"""

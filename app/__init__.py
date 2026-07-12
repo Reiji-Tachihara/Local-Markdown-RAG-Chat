@@ -1,1 +1,1 @@
-"""Local Markdown RAG chat application."""
+"""ローカル Markdown RAG チャットアプリ。"""

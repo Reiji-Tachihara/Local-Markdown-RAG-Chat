@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from app.chat.personas import list_persona_contexts
 from app.chat.service import RagChatService
 from app.config import get_settings
-from app.db.database import list_chat_messages
+from app.db.chat_repository import list_chat_messages
 from app.ollama_client import OllamaConnectionError
 from app.rag.retriever import get_retriever
 

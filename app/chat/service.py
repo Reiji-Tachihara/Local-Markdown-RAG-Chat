@@ -2,7 +2,7 @@ from dataclasses import asdict
 
 from app.chat.personas import get_persona
 from app.config import Settings, get_settings
-from app.db.database import save_chat_message
+from app.db.chat_repository import save_chat_message
 from app.ollama_client import OllamaClient
 from app.rag.retriever import KnowledgeRetriever, get_retriever
 from app.rag.vector_store import SearchResult

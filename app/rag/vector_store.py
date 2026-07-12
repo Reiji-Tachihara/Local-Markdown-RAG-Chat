@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from app.config import Settings
-from app.db.database import connect
+from app.db.connection import connect
 
 
 @dataclass(frozen=True)

@@ -1,1 +1,1 @@
-"""Chat API and persona services."""
+"""チャット API とペルソナ関連処理。"""

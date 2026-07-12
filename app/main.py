@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.chat.router import router as chat_router
 from app.config import get_settings
-from app.db.database import initialize_database
+from app.db.schema import initialize_database
 from app.ollama_client import OllamaConnectionError
 from app.rag.retriever import get_retriever
 

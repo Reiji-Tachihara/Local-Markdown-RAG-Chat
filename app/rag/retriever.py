@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.config import get_settings
-from app.db.database import initialize_database
+from app.db.schema import initialize_database
 from app.rag.chunker import chunk_markdown
 from app.rag.embedder import Embedder, create_embedder
 from app.rag.loader import MarkdownDocument, load_markdown_documents

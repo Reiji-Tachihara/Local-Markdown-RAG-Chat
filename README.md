@@ -1,174 +1,193 @@
 # Local Markdown RAG Chat
 
-Local Markdown RAG Chat は、ローカルの Markdown ファイルを知識源として使う Python + FastAPI 製の RAG チャットアプリです。
+ローカルの Markdown ファイルを知識ベースとして使う、FastAPI + React 製の RAG チャットアプリです。
+Ollama 上のローカル LLM を利用し、標準設定では外部 API を使いません。検索対象の Markdown、SQLite データベース、会話履歴、個人メモはローカルに保持します。
 
-Ollama 上のローカルモデルを使用し、標準構成では OpenAI API などの外部 API を使いません。検索対象の Markdown、SQLite データベース、個人用メモはローカルに保持する前提です。
+## 目的
+
+転職活動用のポートフォリオとして、以下を示すために制作しています。
+
+- FastAPI による API 設計
+- React + TypeScript によるフロントエンド実装
+- Markdown ingestion、chunking、embedding、類似検索を含む RAG パイプライン
+- SQLite を使ったローカル永続化
+- Ollama 連携とローカルファーストな安全設計
+- MCP tool としての検索・メモ保存機能
 
 ## 主な機能
 
-- FastAPI による API サーバ
-- React + Vite + TypeScript による Web UI
-- `knowledge/` 配下の Markdown 読み込み
-- Markdown の chunk 化
-- Ollama による embedding 生成
-- SQLite への検索用データ保存
-- Markdown chunk の類似検索
-- RAG チャット API
+- `knowledge/` 配下の Markdown を読み込み、検索用 chunk として保存
+- Ollama embedding による Markdown chunk の類似検索
+- 検索結果を文脈として使う RAG チャット
+- 回答に使われた参照元 chunk の表示
 - ペルソナ切り替え
-- Markdown ファイルによるペルソナ定義
-- SQLite へのチャット履歴保存
-- RAG 参照元表示
-- MCP サーバの最小実装
+- SQLite への会話履歴保存
+- MCP tool からの知識検索、ペルソナ取得、ノート保存、ノート一覧取得
 
-## 構成
+## 技術スタック
 
 ```text
-React Web UI
-  ↓ fetch
-FastAPI API Server
-  ↓
-RAG Retriever
-  ↓
-SQLite Vector Store
-  ↓
-Ollama API
+Backend
+  Python
+  FastAPI
+  SQLite
+  Ollama
+
+Frontend
+  React
+  TypeScript
+  Vite
+
+Local AI
+  qwen3:8b
+  nomic-embed-text
 ```
 
-## 既定モデル
+## アーキテクチャ
 
-- チャットモデル: `qwen3:8b`
-- embedding モデル: `nomic-embed-text`
-- Ollama API URL: `http://localhost:11434/api`
+```text
+React / Vite frontend
+  -> FastAPI API
+      -> Chat service
+      -> RAG retriever
+          -> Markdown loader
+          -> Chunker
+          -> Embedder
+          -> SQLite vector store
+      -> Ollama API
+      -> SQLite repositories
+```
 
-これらの値は `.env` で変更できます。
-標準では `ENFORCE_LOCAL_OLLAMA=true` により、Ollama URL は `localhost` / `127.0.0.1` / `::1` のみ許可します。
+## プロジェクト構成
 
-## 必要なもの
+```text
+app/                         FastAPI, RAG, DB, Ollama, MCP
+  chat/                      チャットAPIとRAG応答サービス
+  db/                        SQLite接続、schema、repository
+  mcp/                       MCP serverとtool実装
+  rag/                       Markdown loader、chunker、embedder、retriever
+frontend/                    React + Vite + TypeScript UI
+  src/api/                   FastAPI client
+  src/components/            UI components
+  src/hooks/                 React hooks
+  src/types.ts               API/UI共通型
+personas/                    ペルソナ定義 Markdown
+knowledge/sample/            公開用サンプル Markdown
+scripts/                     起動・公開前チェック用スクリプト
+requirements.txt             Python dependencies
+.env.example                 Backend environment example
+frontend/.env.example        Frontend environment example
+```
 
-- Python
-- Node.js
-- Ollama
-- `qwen3:8b`
-- `nomic-embed-text`
+ローカル専用の `knowledge/` 本体、`data/`、`.env`、ビルド成果物は Git に含めない前提です。
 
-Ollama のモデルを取得します。
+## セットアップ
+
+### 1. Ollama モデルを取得
 
 ```powershell
 ollama pull qwen3:8b
 ollama pull nomic-embed-text
 ```
 
-## バックエンドのセットアップ
+### 2. Backend
 
 ```powershell
 pip install -r requirements.txt
 Copy-Item .env.example .env
-```
-
-FastAPI サーバを起動します。
-
-```powershell
 powershell.exe -ExecutionPolicy Bypass -File .\scripts\start_api.ps1
 ```
 
-API ドキュメント:
+API documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## Web UI のセットアップ
+Health check:
+
+```text
+http://127.0.0.1:8000/health
+```
+
+### 3. Frontend
 
 ```powershell
-cd web
+cd frontend
 npm install
 Copy-Item .env.example .env
 npm run dev
 ```
 
-Web UI:
+Frontend:
 
 ```text
 http://127.0.0.1:5173
 ```
 
-`web/.env`:
+## 環境変数
+
+Backend settings are defined in `.env`.
+
+```env
+OLLAMA_BASE_URL=http://localhost:11434/api
+ENFORCE_LOCAL_OLLAMA=true
+OLLAMA_CHAT_MODEL=qwen3:8b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+EMBEDDING_BACKEND=ollama
+HASH_EMBEDDING_DIMENSIONS=384
+KNOWLEDGE_DIR=knowledge
+DATA_DIR=data
+DATABASE_PATH=data/app.db
+CHUNK_SIZE=900
+CHUNK_OVERLAP=120
+RETRIEVAL_LIMIT=4
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Frontend settings are defined in `frontend/.env`.
 
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-## ローカル起動スクリプト
-
-開発用に FastAPI 起動用の PowerShell スクリプトを用意しています。
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\start_api.ps1
-```
-
-`start_api.ps1` は FastAPI を `127.0.0.1` に限定して起動します。
-停止するときは、起動している PowerShell で `Ctrl + C` を押します。
+`ENFORCE_LOCAL_OLLAMA=true` の場合、Ollama URL は `localhost` / `127.0.0.1` / `::1` のみ許可します。
 
 ## API
 
-インデックス再構築:
-
 ```text
-POST /api/index/rebuild
-```
-
-Markdown chunk 検索:
-
-```text
-POST /api/search
-```
-
-チャット:
-
-```text
-POST /api/chat
-```
-
-ペルソナ一覧:
-
-```text
-GET /api/personas
-```
-
-チャット履歴:
-
-```text
-GET /api/chat/history
+POST /api/index/rebuild   Markdown knowledge index を再構築
+POST /api/search          Markdown chunk を類似検索
+POST /api/chat            RAG チャット応答を生成
+GET  /api/personas        ペルソナ一覧を取得
+GET  /api/chat/history    会話履歴を取得
+GET  /health              API ヘルスチェック
 ```
 
 ## ペルソナ
 
-内部IDは以下のままですが、Web UI では短い表示名を使います。
-
-- `user_clone`: 表示名 `ユーザー`
-- `rational_advisor`: 表示名 `相談相手`
-
-ペルソナの内容は `personas/` 配下の Markdown で定義します。
-
-## knowledge ディレクトリ
-
-アプリは `knowledge/` 配下の Markdown ファイルを再帰的に読み込みます。
-
-公開用サンプルは以下に置きます。
+ペルソナは `personas/` 配下の Markdown で定義します。
 
 ```text
-knowledge/sample/
+personas/user_clone.md
+personas/rational_advisor.md
 ```
 
-個人用メモ、会話ログ、ローカル知識データは Git に含めない想定です。このリポジトリでは `knowledge/sample/` 配下の公開用 Markdown だけを追跡する設定にしています。
+UI 上では以下の表示名を使います。
 
-push 前の確認用スクリプト:
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\check_public_safety.ps1
+```text
+user_clone        ユーザー
+rational_advisor  相談相手
 ```
 
-## MCP サーバ
+## knowledge
+
+RAG 対象の Markdown は `knowledge/` 配下に置きます。
+公開用サンプルのみ `knowledge/sample/` に配置し、個人用メモや会話ログは Git に含めない運用です。
+
+Markdown を追加・編集したら、UI の `Index rebuild` または API の `POST /api/index/rebuild` でインデックスを再構築します。
+
+## MCP tools
 
 MCP サーバとして起動できます。
 
@@ -178,19 +197,33 @@ python -m app.mcp.server
 
 提供 tool:
 
-- `search_knowledge`
-- `get_persona_context`
-- `save_note`
-- `list_notes`
-
-## プロジェクト構成
-
 ```text
-app/                  FastAPI, RAG, DB, Ollama, MCP
-web/                  React + Vite + TypeScript UI
-personas/             ペルソナ Markdown
-knowledge/sample/     公開用サンプル Markdown
-scripts/              公開前チェック、FastAPI 起動補助
-requirements.txt      Python 依存関係
-.env.example          バックエンド設定例
+search_knowledge
+get_persona_context
+save_note
+list_notes
 ```
+
+## 公開前チェック
+
+個人データやローカル生成物が Git 管理に入っていないか確認します。
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\check_public_safety.ps1
+```
+
+## 設計上のポイント
+
+- 外部 API キーを使わず、Ollama と SQLite でローカル完結できる構成
+- RAG pipeline を loader / chunker / embedder / retriever / vector store に分離
+- DB 層を connection / schema / repository に分離
+- フロントエンドを API client / hooks / components / types に分離
+- 公開用サンプルと個人用 knowledge を Git 管理上で分離
+
+## 今後の改善候補
+
+- API response model を Pydantic で明示
+- `chunker`、`HashEmbedder`、DB repository のテスト追加
+- RAG 参照表示の検索スコア可視化
+- 会話履歴の削除・クリア機能
+- Docker Compose による起動手順の簡略化

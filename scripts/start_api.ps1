@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# Project root is one directory above this scripts directory.
+# プロジェクトルートは scripts ディレクトリの1階層上。
 $scriptPath = $MyInvocation.MyCommand.Path
 if (-not $scriptPath) {
     $scriptPath = $PSCommandPath

@@ -1,1 +1,1 @@
-"""Markdown RAG components."""
+"""Markdown RAG 関連コンポーネント。"""

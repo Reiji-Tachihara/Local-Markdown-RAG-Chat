@@ -41,11 +41,11 @@ knowledge/**
 !knowledge/sample/*.md
 
 # Frontend
-web/node_modules/
-web/dist/
-web/.env
-web/.env.*
-!web/.env.example
-web/*.tsbuildinfo
-web/vite.config.js
-web/vite.config.d.ts
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts

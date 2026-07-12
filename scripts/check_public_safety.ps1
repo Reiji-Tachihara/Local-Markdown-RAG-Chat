@@ -11,9 +11,9 @@ $blockedPatterns = @(
     "^AGENT\.md$",
     "__pycache__",
     "\.pyc$",
-    "^web/\.env$",
-    "^web/dist/",
-    "^web/node_modules/"
+    "^frontend/\.env$",
+    "^frontend/dist/",
+    "^frontend/node_modules/"
 )
 
 $violations = foreach ($file in $trackedFiles) {
