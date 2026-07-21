@@ -53,7 +53,7 @@ def get_persona(persona_key: str) -> Persona:
 
 
 def get_persona_context(persona_key: str) -> dict[str, str]:
-    """API/MCP で返しやすい dict 形式に Persona を変換する。"""
+    """API で返しやすい dict 形式に Persona を変換する。"""
 
     # get_persona() を呼び出して、key から Persona オブジェクトを取得する。
     persona = get_persona(persona_key)
@@ -65,7 +65,7 @@ def get_persona_context(persona_key: str) -> dict[str, str]:
 
 
 def list_persona_contexts() -> list[dict[str, str]]:
-    """全ペルソナを API/MCP で返しやすい dict の一覧に変換する。"""
+    """全ペルソナを API で返しやすい dict の一覧に変換する。"""
 
     return [get_persona_context(key) for key in load_personas()]
 

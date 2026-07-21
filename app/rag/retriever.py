@@ -42,7 +42,7 @@ class KnowledgeRetriever:
     def index_path(self, path: Path) -> int:
         """指定された1ファイルだけを読み直して索引に追加・更新する。"""
 
-        # save_note など、1ファイルだけ追加された時に使う軽量な再索引。
+        # 1ファイルだけ追加された時に使う軽量な再索引。
         return self.index_document(
             MarkdownDocument(path=path, text=path.read_text(encoding="utf-8"))
         )

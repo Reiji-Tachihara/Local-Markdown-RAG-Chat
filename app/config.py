@@ -46,7 +46,7 @@ class Settings(BaseSettings):
         self.knowledge_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
-        for directory in ("conversations", "notes", "seek"):
+        for directory in ("conversations", "seek"):
             (self.knowledge_dir / directory).mkdir(parents=True, exist_ok=True)
 
     def cors_origin_list(self) -> list[str]:

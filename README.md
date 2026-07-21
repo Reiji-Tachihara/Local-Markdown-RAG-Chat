@@ -11,7 +11,6 @@ Ollama 上のローカル LLM を利用し、標準設定では外部 API を使
 - 回答に使われた参照元 chunk の表示
 - ペルソナ切り替え
 - SQLite への会話履歴保存
-- MCP tool からの知識検索、ペルソナ取得、ノート保存、ノート一覧取得
 
 ## 技術スタック
 
@@ -50,10 +49,9 @@ React / Vite frontend
 ## プロジェクト構成
 
 ```text
-app/                         FastAPI, RAG, DB, Ollama, MCP
+app/                         FastAPI, RAG, DB, Ollama
   chat/                      チャットAPIとRAG応答サービス
   db/                        SQLite接続、schema、repository
-  mcp/                       MCP serverとtool実装
   rag/                       Markdown loader、chunker、embedder、retriever
 frontend/                    React + Vite + TypeScript UI
   src/api/                   FastAPI client
@@ -160,20 +158,3 @@ RAG 対象の Markdown は `knowledge/` 配下に置きます。
 公開用サンプルのみ `knowledge/sample/` に配置し、個人用メモや会話ログは Git に含めない運用です。
 
 Markdown を追加・編集したら、UI の `Index rebuild` または API の `POST /api/index/rebuild` でインデックスを再構築します。
-
-## MCP tools
-
-MCP サーバとして起動できます。
-
-```powershell
-python -m app.mcp.server
-```
-
-提供 tool:
-
-```text
-search_knowledge
-get_persona_context
-save_note
-list_notes
-```
