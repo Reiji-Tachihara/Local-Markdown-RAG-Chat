@@ -37,13 +37,15 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     def ensure_directories(self) -> None:
+        """初回起動に必要なローカルディレクトリを作成する。"""
         self.knowledge_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
-        for directory in ("conversations", "notes", "seek"):
+        for directory in ("conversations", "seek"):
             (self.knowledge_dir / directory).mkdir(parents=True, exist_ok=True)
 
     def cors_origin_list(self) -> list[str]:
+        """カンマ区切りの許可元をCORS用のリストへ変換する。"""
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     def validate_local_only(self) -> None:

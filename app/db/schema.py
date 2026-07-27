@@ -3,7 +3,7 @@ from app.db.connection import connect
 
 
 def initialize_database(settings: Settings) -> None:
-    """RAG、ノート、チャット履歴で使うローカル SQLite テーブルを作成する。"""
+    """RAGとチャット履歴で使うローカルSQLiteテーブルを作成する。"""
 
     with connect(settings) as connection:
         connection.executescript(
@@ -17,14 +17,6 @@ def initialize_database(settings: Settings) -> None:
                 checksum TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 UNIQUE(source_path, chunk_index)
-            );
-
-            CREATE TABLE IF NOT EXISTS notes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                content TEXT NOT NULL,
-                source_path TEXT NOT NULL,
-                created_at TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS chat_messages (
