@@ -8,7 +8,6 @@ from app.ollama_client import OllamaClient
 
 
 class Embedder(Protocol):
-    # Protocol にしておくと、Ollama 以外の embedding 実装へ差し替えやすい。
     name: str
 
     def embed(self, texts: list[str]) -> list[list[float]]:

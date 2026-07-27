@@ -3,7 +3,7 @@ from app.db.connection import connect
 
 
 def initialize_database(settings: Settings) -> None:
-    """RAG、ノート、チャット履歴で使うローカル SQLite テーブルを作成する。"""
+    """RAGとチャット履歴で使うローカルSQLiteテーブルを作成する。"""
 
     with connect(settings) as connection:
         connection.executescript(

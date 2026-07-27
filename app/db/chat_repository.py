@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 
 from app.config import Settings
 from app.db.connection import connect
-from app.db.schema import initialize_database
 
 
 def save_chat_message(
@@ -15,7 +14,6 @@ def save_chat_message(
 ) -> dict:
     """チャットメッセージを1件保存し、保存したレコードを返す。"""
 
-    initialize_database(settings)
     created_at = datetime.now(timezone.utc).isoformat()
     with connect(settings) as connection:
         cursor = connection.execute(
@@ -39,7 +37,6 @@ def save_chat_message(
 def list_chat_messages(settings: Settings, limit: int = 50) -> list[dict]:
     """最近のチャットメッセージを新しい順に返す。"""
 
-    initialize_database(settings)
     safe_limit = max(1, min(limit, 200))
     with connect(settings) as connection:
         rows = connection.execute(
