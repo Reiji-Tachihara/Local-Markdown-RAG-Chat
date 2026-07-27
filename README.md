@@ -62,8 +62,6 @@ personas/                    ペルソナ定義 Markdown
 knowledge/sample/            公開用サンプル Markdown
 scripts/                     セットアップ・起動・公開前チェック用スクリプト
 requirements.txt             Python dependencies
-.env.example                 Backend environment example
-frontend/.env.example        Frontend environment example
 ```
 
 ローカル専用の `knowledge/` 本体、`data/`、`.env`、ビルド成果物は Git に含めない前提です。
@@ -81,36 +79,6 @@ powershell.exe -ExecutionPolicy Bypass -File .\scripts\setup_app.ps1
 
 このスクリプトは `.env` 作成、Python 依存関係、frontend 依存関係、Ollama モデル取得をまとめて実行します。
 
-### 普段の起動
-
-以下を実行します。
-
-```powershell
-cd E:\pwork
-powershell.exe -ExecutionPolicy Bypass -File .\scripts\start_app.ps1
-```
-
-このスクリプトは Ollama、FastAPI、React/Vite をまとめて起動し、ブラウザでフロントエンドを開きます。
-停止するときは、起動中の PowerShell で `Ctrl + C` を押します。
-
-Frontend:
-
-```text
-http://127.0.0.1:5173
-```
-
-API documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Health check:
-
-```text
-http://127.0.0.1:8000/health
-```
-
 ## 画面上のボタン
 
 ### Index rebuild
@@ -122,7 +90,6 @@ http://127.0.0.1:8000/health
 - `knowledge/` に Markdown を追加した
 - 既存の Markdown を編集した
 - Markdown を削除した
-- MCP の `save_note` 以外の方法で知識ファイルを変更した
 
 内部的には以下の処理を行います。
 
@@ -166,30 +133,6 @@ GET /api/chat/history?limit=80
 ```
 
 画面を開いた時にも履歴は自動で読み込まれるため、通常は必要な時だけ押す手動更新ボタンです。
-
-## 環境変数
-
-詳細な設定項目は [.env.example](.env.example) と [frontend/.env.example](frontend/.env.example) に記載しています。
-README では、動作理解に必要な主要項目だけを示します。
-
-```env
-OLLAMA_BASE_URL=http://localhost:11434/api
-ENFORCE_LOCAL_OLLAMA=true
-OLLAMA_CHAT_MODEL=qwen3:8b
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-VITE_API_BASE_URL=http://127.0.0.1:8000
-```
-
-`ENFORCE_LOCAL_OLLAMA=true` の場合、Ollama URL は `localhost` / `127.0.0.1` / `::1` のみ許可します。
-API キーやパスワードのような秘密情報は使わない前提です。
-
-長い質問で応答に時間がかかる場合は、`.env.example` を参考に以下の値を調整できます。
-
-```env
-OLLAMA_REQUEST_TIMEOUT=180
-CHAT_MESSAGE_MAX_CHARS=12000
-RAG_CONTEXT_MAX_CHARS=12000
-```
 
 ## API
 
